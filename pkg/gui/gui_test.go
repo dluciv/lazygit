@@ -84,7 +84,7 @@ func tests() []integrationTest {
 func generateSnapshot(t *testing.T, actualDir string) string {
 	osCommand := oscommands.NewDummyOSCommand()
 
-	cmd := fmt.Sprintf(`bash -c "cd %s && git status; cat ./*; git log --pretty=%%B -p"`, actualDir)
+	cmd := fmt.Sprintf(`bash -c "cd %s && git status && cat ./* && git log --pretty=%%B -p"`, actualDir)
 
 	// need to copy from current directory to
 
@@ -252,8 +252,6 @@ func runLazygit(t *testing.T, testPath string, rootDir string, record bool, spee
 	assert.NoError(t, err)
 
 	cmdStr = fmt.Sprintf("%s --use-config-dir=%s --path=%s", cmdStr, configDir, actualDir)
-
-	panic(cmdStr)
 
 	cmd := osCommand.ExecutableFromString(cmdStr)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("REPLAY_SPEED=%d", speed))
