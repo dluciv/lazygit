@@ -20,8 +20,8 @@ import (
 // To record keypresses for an integration test, pass RECORD_EVENTS=true like so:
 // RECORD_EVENTS=true go test pkg/gui/gui_test.go -run /commit
 //
-// To update a snapshot for an integration test, pass UPDATE_SNAPSHOT=true
-// UPDATE_SNAPSHOT=true go test pkg/gui/gui_test.go -run /commit
+// To update a snapshot for an integration test, pass UPDATE_SNAPSHOTS=true
+// UPDATE_SNAPSHOTS=true go test pkg/gui/gui_test.go -run /commit
 //
 // When RECORD_EVENTS is true, updates will be updated automatically
 //
@@ -54,10 +54,10 @@ func tests() []integrationTest {
 			name:    "patchBuilding2",
 			fixture: "updatedFile",
 		},
-		// {
-		// 	name:    "mergeConflicts",
-		// 	fixture: "mergeConflicts",
-		// },
+		{
+			name:    "mergeConflicts",
+			fixture: "mergeConflicts",
+		},
 		{
 			name:    "searching",
 			fixture: "newFile",
@@ -71,7 +71,7 @@ func tests() []integrationTest {
 
 func generateSnapshot(t *testing.T) string {
 	osCommand := oscommands.NewDummyOSCommand()
-	cmd := `sh -c "git status; cat ./*; git log --pretty=%B -p"`
+	cmd := `bash -c "git status; cat ./*; git log --pretty=%B -p"`
 
 	snapshot, err := osCommand.RunCommandWithOutput(cmd)
 	assert.NoError(t, err)
@@ -103,10 +103,19 @@ func Test(t *testing.T) {
 		panic(err)
 	}
 
+	record := os.Getenv("RECORD_EVENTS") != ""
+	updateSnapshots := record || os.Getenv("UPDATE_SNAPSHOTS") != ""
+
 	for _, test := range tests {
 		test := test
+
 		t.Run(test.name, func(t *testing.T) {
 			speeds := []int{10, 5, 1}
+			if updateSnapshots {
+				// have to go at original speed if updating snapshots in case we go to fast and create a junk snapshot
+				speeds = []int{1}
+			}
+
 			for i, speed := range speeds {
 				t.Logf("%s: attempting test at speed %d\n", test.name, speed)
 
@@ -123,14 +132,11 @@ func Test(t *testing.T) {
 				err = createFixture(rootDir, test.fixture)
 				assert.NoError(t, err)
 
-				record := os.Getenv("RECORD_EVENTS") != ""
 				runLazygit(t, testPath, rootDir, record, speed)
-
-				updateSnapshot := record || os.Getenv("UPDATE_SNAPSHOT") != ""
 
 				actual := generateSnapshot(t)
 
-				if updateSnapshot {
+				if updateSnapshots {
 					err := ioutil.WriteFile(snapshotPath, []byte(actual), 0600)
 					assert.NoError(t, err)
 				}
