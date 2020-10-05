@@ -83,6 +83,7 @@ func tests() []integrationTest {
 
 func generateSnapshot(t *testing.T, actualDir string) string {
 	osCommand := oscommands.NewDummyOSCommand()
+
 	cmd := fmt.Sprintf(`bash -c "cd %s && git status; cat ./*; git log --pretty=%%B -p"`, actualDir)
 
 	// need to copy from current directory to
@@ -268,7 +269,7 @@ func runLazygit(t *testing.T, testPath string, rootDir string, record bool, spee
 	}
 
 	// if we're on CI we'll need to use a PTY. We can work that out by seeing if the 'TERM' env is defined.
-	if runInParallel() {
+	if runInPTY() {
 		cmd.Env = append(cmd.Env, "TERM=xterm")
 
 		f, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: 100, Cols: 100})
@@ -286,7 +287,11 @@ func runLazygit(t *testing.T, testPath string, rootDir string, record bool, spee
 }
 
 func runInParallel() bool {
-	return os.Getenv("PARALLEL") != "" || os.Getenv("TERM") == ""
+	return os.Getenv("PARALLEL") != ""
+}
+
+func runInPTY() bool {
+	return runInParallel() || os.Getenv("TERM") == ""
 }
 
 func prepareIntegrationTestDir(testPath string) {
