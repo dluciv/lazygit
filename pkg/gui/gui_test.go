@@ -154,7 +154,7 @@ func Test(t *testing.T) {
 
 func createFixture(rootDir string, name string) error {
 	osCommand := oscommands.NewDummyOSCommand()
-	cmd := exec.Command("sh", filepath.Join(rootDir, "test", "fixtures", fmt.Sprintf("%s.sh", name)))
+	cmd := exec.Command("bash", filepath.Join(rootDir, "test", "fixtures", fmt.Sprintf("%s.sh", name)))
 
 	if err := osCommand.RunExecutable(cmd); err != nil {
 		return err
