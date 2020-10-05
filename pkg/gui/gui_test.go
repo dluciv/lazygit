@@ -253,6 +253,8 @@ func runLazygit(t *testing.T, testPath string, rootDir string, record bool, spee
 
 	cmdStr = fmt.Sprintf("%s --use-config-dir=%s --path=%s", cmdStr, configDir, actualDir)
 
+	panic(cmdStr)
+
 	cmd := osCommand.ExecutableFromString(cmdStr)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("REPLAY_SPEED=%d", speed))
 
