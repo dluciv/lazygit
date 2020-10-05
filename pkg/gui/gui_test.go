@@ -84,11 +84,24 @@ func tests() []integrationTest {
 func generateSnapshot(t *testing.T, actualDir string) string {
 	osCommand := oscommands.NewDummyOSCommand()
 
-	cmd := fmt.Sprintf(`bash -c "git -C %s status && cat %s/* && git -C %s log --pretty=%%B -p"`, actualDir, actualDir, actualDir)
-
-	// need to copy from current directory to
-
+	cmd := fmt.Sprintf(`bash -c "git -C %s status && git -C %s log --pretty=%%B -p"`, actualDir, actualDir)
 	snapshot, err := osCommand.RunCommandWithOutput(cmd)
+	assert.NoError(t, err)
+
+	err = filepath.Walk(actualDir, func(path string, f os.FileInfo, err error) error {
+		assert.NoError(t, err)
+
+		if f.IsDir() && f.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		bytes, err := ioutil.ReadFile(path)
+		assert.NoError(t, err)
+		snapshot += string(bytes) + "\n"
+
+		return nil
+	})
+
 	assert.NoError(t, err)
 
 	return snapshot
