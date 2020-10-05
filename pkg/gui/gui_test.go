@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -107,7 +108,7 @@ func Test(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			speeds := []int{10, 5, 1}
 			for i, speed := range speeds {
-				t.Logf("%s: trying again at speed %d\n", test.name, speed)
+				t.Logf("%s: attempting test at speed %d\n", test.name, speed)
 
 				testPath := filepath.Join(rootDir, "test", "integration", test.name)
 				findOrCreateDir(testPath)
@@ -225,7 +226,7 @@ func runLazygit(t *testing.T, testPath string, rootDir string, record bool, spee
 		f, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: 100, Cols: 100})
 		assert.NoError(t, err)
 
-		_, err = ioutil.ReadAll(f)
+		_, _ = io.Copy(ioutil.Discard, f)
 
 		assert.NoError(t, err)
 
