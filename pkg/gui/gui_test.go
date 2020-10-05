@@ -108,7 +108,7 @@ func Test(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			speeds := []int{10, 5, 1}
 			for i, speed := range speeds {
-				fmt.Printf("%s: trying again at speed %d\n", test.name, speed)
+				t.Logf("%s: trying again at speed %d\n", test.name, speed)
 
 				testPath := filepath.Join(rootDir, "test", "integration", test.name)
 				findOrCreateDir(testPath)
