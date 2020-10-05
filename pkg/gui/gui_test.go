@@ -2,7 +2,6 @@ package gui
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -226,8 +225,11 @@ func runLazygit(t *testing.T, testPath string, rootDir string, record bool, spee
 		f, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: 100, Cols: 100})
 		assert.NoError(t, err)
 
-		_, err = io.Copy(os.Stdout, f)
+		_, err = ioutil.ReadAll(f)
+
 		assert.NoError(t, err)
+
+		_ = f.Close()
 	} else {
 		err := osCommand.RunExecutable(cmd)
 		assert.NoError(t, err)
