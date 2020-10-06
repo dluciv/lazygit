@@ -208,7 +208,30 @@ func Test(t *testing.T) {
 				}
 
 				actual := generateSnapshot(t, actualDir)
-				expected := generateSnapshot(t, expectedDir)
+
+				expected := ""
+
+				func() {
+					// git refuses to track .git folders in subdirectories so we need to rename it
+					// to git_keep after running a test
+
+					defer func() {
+						err = os.Rename(
+							filepath.Join(expectedDir, ".git"),
+							filepath.Join(expectedDir, ".git_keep"),
+						)
+
+						assert.NoError(t, err)
+					}()
+
+					// ignoring this error because we might not have a .git_keep file here yet.
+					_ = os.Rename(
+						filepath.Join(expectedDir, ".git_keep"),
+						filepath.Join(expectedDir, ".git"),
+					)
+
+					expected = generateSnapshot(t, expectedDir)
+				}()
 
 				if expected == actual {
 					t.Logf("%s: success at speed %d\n", test.name, speed)
