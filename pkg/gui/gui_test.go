@@ -81,18 +81,36 @@ func tests() []integrationTest {
 	}
 }
 
-func generateSnapshot(t *testing.T, actualDir string) string {
+func generateSnapshot(t *testing.T, dir string) string {
 	osCommand := oscommands.NewDummyOSCommand()
 
-	cmd := fmt.Sprintf(`bash -c "git -C %s status && git -C %s log --pretty=%%B -p"`, actualDir, actualDir)
-	snapshot, err := osCommand.RunCommandWithOutput(cmd)
+	_, err := os.Stat(filepath.Join(dir, ".git"))
+	if err != nil {
+		return "git directory not found"
+	}
+
+	snapshot := ""
+
+	statusCmd := fmt.Sprintf(`git -C %s status`, dir)
+	statusCmdOutput, err := osCommand.RunCommandWithOutput(statusCmd)
 	assert.NoError(t, err)
 
-	err = filepath.Walk(actualDir, func(path string, f os.FileInfo, err error) error {
+	snapshot += statusCmdOutput + "\n"
+
+	logCmd := fmt.Sprintf(`git -C %s log --pretty=%%B -p -1`, dir)
+	logCmdOutput, err := osCommand.RunCommandWithOutput(logCmd)
+	assert.NoError(t, err)
+
+	snapshot += logCmdOutput + "\n"
+
+	err = filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 		assert.NoError(t, err)
 
-		if f.IsDir() && f.Name() == ".git" {
-			return filepath.SkipDir
+		if f.IsDir() {
+			if f.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 
 		bytes, err := ioutil.ReadFile(path)
@@ -174,22 +192,22 @@ func Test(t *testing.T) {
 				testPath := filepath.Join(rootDir, "test", "integration", test.name)
 				actualDir := filepath.Join(testPath, "actual")
 				expectedDir := filepath.Join(testPath, "expected")
+				t.Logf("testPath: %s, actualDir: %s, expectedDir: %s", testPath, actualDir, expectedDir)
 				findOrCreateDir(testPath)
 
-				prepareIntegrationTestDir(testPath)
+				prepareIntegrationTestDir(actualDir)
 
 				err := createFixture(rootDir, test.fixture, actualDir)
 				assert.NoError(t, err)
 
 				runLazygit(t, testPath, rootDir, record, speed)
 
-				actual := generateSnapshot(t, actualDir)
-
 				if updateSnapshots {
 					err = oscommands.CopyDir(actualDir, expectedDir)
 					assert.NoError(t, err)
 				}
 
+				actual := generateSnapshot(t, actualDir)
 				expected := generateSnapshot(t, expectedDir)
 
 				if expected == actual {
@@ -307,14 +325,12 @@ func runInPTY() bool {
 	return runInParallel() || os.Getenv("TERM") == ""
 }
 
-func prepareIntegrationTestDir(testPath string) {
-	path := filepath.Join(testPath, "actual")
-
+func prepareIntegrationTestDir(actualDir string) {
 	// remove contents of integration test directory
-	dir, err := ioutil.ReadDir(path)
+	dir, err := ioutil.ReadDir(actualDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			err = os.Mkdir(path, 0777)
+			err = os.Mkdir(actualDir, 0777)
 			if err != nil {
 				panic(err)
 			}
@@ -323,6 +339,6 @@ func prepareIntegrationTestDir(testPath string) {
 		}
 	}
 	for _, d := range dir {
-		os.RemoveAll(filepath.Join(path, d.Name()))
+		os.RemoveAll(filepath.Join(actualDir, d.Name()))
 	}
 }
